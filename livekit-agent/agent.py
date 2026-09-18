@@ -23,12 +23,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import re
-import sys
-from typing import AsyncIterable, Literal
 
-import httpx
 from dotenv import load_dotenv
 from livekit import agents, rtc
 from livekit.agents import (
@@ -39,7 +37,6 @@ from livekit.agents import (
     RoomInputOptions,
     RunContext,
     WorkerOptions,
-    cli,
     function_tool,
 )
 from livekit.plugins import openai, silero
@@ -53,6 +50,8 @@ except ImportError:  # pragma: no cover - fallback for older plugin versions
 
 load_dotenv(".env.local")  # shared with the web app
 load_dotenv()  # then livekit-agent/.env
+
+logger = logging.getLogger("ultron-agent")
 
 WAKE_ROOM = "ultron-voice"
 
@@ -74,11 +73,11 @@ handles this automatically, so never comment on it and never stop early yourself
 # ─── Stop/continue command handling ───────────────────────────────────────────
 STOP_RE = re.compile(
     r"\b(stop|wait|hold on|pause|shut up|be quiet|quiet|silence|that'?s enough|enough)\b",
-    re.I,
+    re.IGNORECASE,
 )
 CONTINUE_RE = re.compile(
     r"\b(continue|go on|go ahead|resume|carry on|keep going|keep talking)\b",
-    re.I,
+    re.IGNORECASE,
 )
 
 
@@ -103,7 +102,7 @@ class UltronAgent(Agent):
             self._last_transcript = t
 
     # Called by the session on every recognized user utterance
-    async def on_user_turn_completed(self, turn_ctx, new_message) -> None:  # noqa: ANN001
+    async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
         text = getattr(new_message, "text_content", "") or getattr(new_message, "content", "")
         if isinstance(text, str):
             self._note_user_text(text)
@@ -118,7 +117,8 @@ class UltronAgent(Agent):
         """Current local date and time."""
         import datetime
 
-        return datetime.datetime.now().strftime("%A, %d %B %Y, %I:%M %p")
+        # ruff DTZ005: naive now() is ambiguous — use local timezone
+        return datetime.datetime.now().astimezone().strftime("%A, %d %B %Y, %I:%M %p")
 
     @function_tool
     async def pause_speech(self, context: RunContext) -> str:
@@ -213,16 +213,16 @@ async def entrypoint(ctx: JobContext) -> None:
                 json.dumps({"type": "ultron_state", "state": state, **(extra or {})}).encode(),
                 topic="ultron",
             )
-        except Exception:  # noqa: BLE001 — HUD updates must never crash the agent
-            pass
+        except Exception:  # HUD updates must never crash the agent
+            logger.debug("send_state failed", exc_info=True)
 
     @session.on("user_input_transcribed")
-    def _on_user_transcript(ev) -> None:  # noqa: ANN001
+    def _on_user_transcript(ev) -> None:
         if ev.is_final and ev.transcript.strip():
             agent._note_user_text(ev.transcript)
 
     @session.on("agent_state_changed")
-    def _on_agent_state(ev) -> None:  # noqa: ANN001
+    def _on_agent_state(ev) -> None:
         mapping = {
             "initializing": "idle",
             "idle": "idle",
