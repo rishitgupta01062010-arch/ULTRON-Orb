@@ -1,0 +1,53 @@
+name: Worker CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "livekit-agent/**"
+      - ".github/workflows/worker-ci.yml"
+  pull_request:
+    paths:
+      - "livekit-agent/**"
+      - ".github/workflows/worker-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Resolve deps & import check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: livekit-agent
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pinned for reproducible installs. Bump the Python version here when
+      # you upgrade livekit-agents (it currently requires Python >= 3.10).
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: livekit-agent/uv.lock
+
+      # Fully resolves the dependency tree (livekit-agents + STT/TTS plugins)
+      # and writes uv.lock — catches version conflicts that would otherwise
+      # surface as a broken `uv sync` on your machine.
+      - name: Resolve dependencies (uv sync)
+        run: uv sync
+
+      # Compile + import the agent script inside the resolved environment.
+      # Verifies the livekit-agents API surface still matches (imports,
+      # WorkerOptions, AgentSession wiring) even without LiveKit keys.
+      - name: Import check (uv run python agent.py)
+        run: uv run python -c "import runpy; runpy.run_path('agent.py', run_name='ultron_import_check')"
+
+      - name: Lint (ruff)
+        run: uv run ruff check agent.py
