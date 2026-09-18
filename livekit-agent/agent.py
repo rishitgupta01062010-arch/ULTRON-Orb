@@ -42,7 +42,14 @@ from livekit.agents import (
     cli,
     function_tool,
 )
-from livekit.plugins import fish_audio, openai, silero
+from livekit.plugins import openai, silero
+
+# The Fish Audio plugin module is named "fishaudio" (matching its dist name
+# livekit-plugins-fishaudio); older plugin versions exposed "fish_audio".
+try:
+    from livekit.plugins import fishaudio as fish_audio
+except ImportError:  # pragma: no cover - fallback for older plugin versions
+    from livekit.plugins import fish_audio  # type: ignore[no-redef]
 
 load_dotenv(".env.local")  # shared with the web app
 load_dotenv()  # then livekit-agent/.env
