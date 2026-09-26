@@ -19,6 +19,36 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Setup & API keys
+
+The app works with **zero keys** — the orb, lock screen, wake word, claps,
+and browser-voice answers all function out of the box. API keys upgrade the
+brain and the voice:
+
+| Key | What it unlocks | Get it from |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | Primary LLM (Gemini flash) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| `GROQ_API_KEY` | Fallback LLM (extremely fast) | [console.groq.com/keys](https://console.groq.com/keys) |
+| `OPENROUTER_API_KEY` | Last-resort LLM fallback | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| `FISH_AUDIO_API_KEY` | Premium TTS voice (falls back to browser voice) | [fish.audio](https://fish.audio) |
+| `FISH_AUDIO_VOICE_ID` | Choose a specific Fish Audio voice | fish.audio → voices |
+| `LIVEKIT_URL` + `LIVEKIT_API_KEY` + `LIVEKIT_API_SECRET` | LIVE server-side voice agent | [cloud.livekit.io](https://cloud.livekit.io) (free tier) |
+
+**Where keys go:**
+
+```bash
+cp .env.local.example .env.local   # then paste your keys into .env.local
+```
+
+- **`.env.local`** holds real keys — it is git-ignored and can never be committed.
+- **`.env.local.example`** is the empty template — the only env file in git.
+- Keys are read **server-side only**; the browser never sees them.
+- Restart the server after editing. The LLM chain tries **Gemini → Groq →
+  OpenRouter** in order and auto-falls through on errors or rate limits —
+  any one key is enough; all three give maximum resilience.
+
+For the optional server-side voice worker, see [`livekit-agent/README.md`](livekit-agent/README.md).
+
 ## Controls
 
 ### Mouse / touch
