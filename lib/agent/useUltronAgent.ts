@@ -493,5 +493,5 @@ export function useUltronAgent() {
   };
 }
 
-// Re-export for JarvisOrb convenience typing
+// Re-export for UltronOrb convenience typing
 export type { AgentState as UltronAgentState };

@@ -36,7 +36,7 @@ function toMicStatus(state: VoiceState): "unsupported" | "idle" | "listening" | 
   return "listening"; // all other states = mic is armed and running
 }
 
-export default function JarvisOrb() {
+export default function UltronOrb() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);

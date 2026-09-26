@@ -2,9 +2,9 @@
 
 An Iron Man–inspired holographic orb built with **Next.js**, **Three.js**, and **MediaPipe** hand tracking — control it with your bare hands through your webcam.
 
-> 🔮 This is the open-source **interface** of [ULTRON](https://sagartamang.com/projects/ultron) — my AI that talks in real time and controls Android devices by itself. **[Read the write-up](https://sagartamang.com/projects/ultron)** or **[the X post](https://x.com/sagar_builds/status/2077277583646101921)**
-
-> 📱 **[Watch the demo on Instagram](https://www.instagram.com/p/DayJ17OTwvx/)**
+> 🔮 A holographic AI assistant interface — wake-word locked, hand-gesture
+> controlled, with a streaming Gemini/Groq brain, Fish Audio voice, and an
+> optional LiveKit server-side voice agent. Built to run on modest hardware.
 
 ![ULTRON orb UI](docs/screenshot.png)
 
@@ -92,7 +92,7 @@ All settings persist in `localStorage` and can be restored with **RESET DEFAULTS
 - **`lib/handTracker.ts`** — MediaPipe HandLandmarker running on the webcam
   feed. Pinch detection with hysteresis: one pinched hand spins the orb, two
   pinched hands zoom by spreading apart or together.
-- **`components/JarvisOrb.tsx`** — the HUD and glue between the scene, the
+- **`components/UltronOrb.tsx`** — the HUD and glue between the scene, the
   tracker, and your inputs.
 
 ## License
