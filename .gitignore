@@ -27,3 +27,8 @@ next-env.d.ts
 
 # env templates are safe to commit (empty values only)
 !.env.local.example
+
+# runtime artifacts
+server.log
+__pycache__/
+*.pyc
