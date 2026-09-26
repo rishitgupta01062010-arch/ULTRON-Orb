@@ -53,3 +53,17 @@ appears in the HUD → just talk. "stop" / "continue" work over LIVE too.
   in the project settings.
 - State broadcasting: every state change is published as room data
   (`{"type": "ultron_state", ...}`) so the web HUD mirrors the agent live.
+
+## Hardware note (tested on Intel Celeron 3867U)
+
+The worker installs and resolves cleanly, but `livekit-agents` 1.8.x crashes
+at import on low-power Celeron CPUs (`Illegal instruction` from a compiled
+component inside the inference stack — numpy, av, livekit.rtc, and
+onnxruntime all import fine, isolating the fault to livekit-agents itself).
+This is a hardware-level incompatibility with the current release, not a
+configuration problem.
+
+On such machines, use the web app's built-in voice pipeline (wake word →
+Web Speech → Gemini/Groq streaming → browser TTS) — it is deliberately
+CPU-light and fully functional without the worker. Run the worker on a
+machine with a modern 4+ core CPU for LIVE mode.
