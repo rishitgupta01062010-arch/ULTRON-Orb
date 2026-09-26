@@ -59,7 +59,8 @@ jobs:
         shell: bash
         run: |
           PATTERNS='AIza[0-9A-Za-z_-]{30,}|gsk_[A-Za-z0-9]{20,}|sk-or-[A-Za-z0-9-]{20,}|(FISH_AUDIO_API_KEY|FISH_AUDIO_VOICE_ID|LIVEKIT_API_SECRET|LIVEKIT_API_KEY|GEMINI_API_KEY|GROQ_API_KEY|OPENROUTER_API_KEY)=[A-Za-z0-9_-]{8,}'
-          HITS=$(git grep -hE "$PATTERNS" $(git rev-list --all) -- 2>/dev/null | sort -u | head -20)
+          # `|| true`: git grep exits 1 on zero matches; CI bash has set -e -o pipefail
+          HITS=$(git grep -hE "$PATTERNS" $(git rev-list --all) -- 2>/dev/null | sort -u | head -20) || true
           if [ -n "$HITS" ]; then
             echo " 🚨 POTENTIAL SECRETS FOUND IN REPOSITORY HISTORY:"
             echo "$HITS" | sed 's/^/    /' | cut -c1-140
