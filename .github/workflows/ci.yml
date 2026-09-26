@@ -31,3 +31,31 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Repo-side backstop to the local pre-commit hook: scans the FULL git
+  # history on every push. Catches a key pasted into the wrong file (e.g.
+  # .env.local.example) even if it slipped past a machine without the hook.
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan every commit for key-shaped strings
+        shell: bash
+        run: |
+          PATTERNS='AIza[0-9A-Za-z_-]{30,}|gsk_[A-Za-z0-9]{20,}|sk-or-[A-Za-z0-9-]{20,}|(FISH_AUDIO_API_KEY|FISH_AUDIO_VOICE_ID|LIVEKIT_API_SECRET|LIVEKIT_API_KEY|GEMINI_API_KEY|GROQ_API_KEY|OPENROUTER_API_KEY)=[A-Za-z0-9_-]{8,}'
+          HITS=$(git grep -hE "$PATTERNS" $(git rev-list --all) -- 2>/dev/null | sort -u | head -20)
+          if [ -n "$HITS" ]; then
+            echo "═══════════════════════════════════════════════════"
+            echo " 🚨 POTENTIAL SECRETS FOUND IN REPOSITORY HISTORY:"
+            echo "$HITS" | sed 's/^/    /' | cut -c1-140
+            echo "═══════════════════════════════════════════════════"
+            echo " Rotate the exposed key immediately, then purge it:"
+            echo " https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository"
+            exit 1
+          fi
+          echo "✅ No secrets found anywhere in history."

@@ -42,9 +42,9 @@ const TIMEOUT_MS = 30_000; // hard cap per provider attempt
 
 // ─── Provider: Gemini ────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-3.6-flash";
 const GEMINI_URL = (model: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}`;
 
 async function callGemini(messages: ChatMessage[]): Promise<LLMResult> {
   const key = process.env.GEMINI_API_KEY;
@@ -67,7 +67,7 @@ async function callGemini(messages: ChatMessage[]): Promise<LLMResult> {
     },
   };
 
-  const res = await fetch(`${GEMINI_URL(GEMINI_MODEL)}?key=${key}`, {
+  const res = await fetch(`${GEMINI_URL(GEMINI_MODEL)}:generateContent?key=${key}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -93,7 +93,7 @@ async function callGemini(messages: ChatMessage[]): Promise<LLMResult> {
 
 // ─── Provider: Groq (OpenAI-compatible) ──────────────────────────────────────
 
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_MODEL = "openai/gpt-oss-120b";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 async function callGroq(messages: ChatMessage[]): Promise<LLMResult> {
@@ -110,7 +110,9 @@ async function callGroq(messages: ChatMessage[]): Promise<LLMResult> {
       model: GROQ_MODEL,
       messages,
       temperature: 0.7,
-      max_tokens: 1024,
+      // gpt-oss is a reasoning model — reasoning tokens count against this
+      // budget, so keep it generous or replies come back empty
+      max_tokens: 2048,
     }),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
@@ -132,7 +134,7 @@ async function callGroq(messages: ChatMessage[]): Promise<LLMResult> {
 
 // ─── Provider: OpenRouter ────────────────────────────────────────────────────
 
-const OPENROUTER_MODEL = "google/gemini-2.0-flash-001";
+const OPENROUTER_MODEL = "google/gemini-2.5-flash";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 async function callOpenRouter(messages: ChatMessage[]): Promise<LLMResult> {
@@ -319,7 +321,8 @@ async function* streamOpenAICompatible(
       model,
       messages,
       temperature: 0.7,
-      max_tokens: 1024,
+      // generous: reasoning models spend some of this on hidden thinking
+      max_tokens: 2048,
       stream: true,
     }),
     signal,
