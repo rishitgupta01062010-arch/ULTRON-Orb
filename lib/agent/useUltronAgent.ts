@@ -24,7 +24,7 @@ export interface ChatTurn {
   content: string;
 }
 
-export type AgentState = "idle" | "thinking" | "speaking" | "paused";
+export type AgentState = "idle" | "thinking" | "speaking" | "paused" | "finished";
 
 const MAX_HISTORY = 16;
 
@@ -67,6 +67,7 @@ export function useUltronAgent() {
   const queueRunningRef = useRef(false);
   const browserResolveRef = useRef<(() => void) | null>(null);
   const historyAtStartRef = useRef<ChatTurn[]>([]);
+  const finishedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
@@ -80,6 +81,7 @@ export function useUltronAgent() {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
+      if (finishedTimerRef.current) clearTimeout(finishedTimerRef.current);
     };
   }, []);
 
@@ -214,7 +216,14 @@ export function useUltronAgent() {
         ttsQueueRef.current.length === 0 &&
         !pausedRef.current
       ) {
-        setState("idle");
+        // FINISHED state: brief visual confirmation that the answer completed,
+        // then back to idle. Cancelled if a new turn/pause starts first.
+        setState("finished");
+        if (finishedTimerRef.current) clearTimeout(finishedTimerRef.current);
+        finishedTimerRef.current = setTimeout(() => {
+          finishedTimerRef.current = null;
+          setState((s) => (s === "finished" ? "idle" : s));
+        }, 1800);
       }
     }
   }, [fetchFishTTS, speakWithBrowser]);
@@ -480,7 +489,7 @@ export function useUltronAgent() {
   return {
     history,
     streamingText,
-    state, // "idle" | "thinking" | "speaking" | "paused"
+    state, // "idle" | "thinking" | "speaking" | "paused" | "finished"
     error,
     ask,
     clear,

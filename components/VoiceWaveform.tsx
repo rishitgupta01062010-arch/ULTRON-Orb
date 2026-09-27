@@ -18,7 +18,7 @@ import { useEffect, useRef } from "react";
 
 interface VoiceWaveformProps {
   /** Agent state — waveform is visible only while speaking. */
-  state: "idle" | "thinking" | "speaking" | "paused";
+  state: "idle" | "thinking" | "speaking" | "paused" | "finished";
   /** Live audio element (Fish Audio path), or null when using browser TTS. */
   audioElement: React.RefObject<HTMLAudioElement | null>;
 }

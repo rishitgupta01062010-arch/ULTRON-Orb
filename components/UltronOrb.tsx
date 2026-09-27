@@ -20,6 +20,7 @@ import VoiceWaveform from "@/components/VoiceWaveform";
 import LockScreen from "@/components/LockScreen";
 import PermissionOnboarding, { isOnboardingNeeded } from "@/components/PermissionOnboarding";
 import VoiceSettings from "@/components/VoiceSettings";
+import SetupModal from "@/components/SetupModal";
 
 type CameraState = "off" | "starting" | "on" | "error";
 
@@ -58,6 +59,7 @@ export default function UltronOrb() {
   // First-launch onboarding + voice settings panel
   const [onboarding, setOnboarding] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   // Orb mouth: drive the scene's voice pulse from the agent state
   useEffect(() => {
@@ -260,11 +262,30 @@ export default function UltronOrb() {
   // ─── Agent speaking notifications → voice engine echo guard ────────────────
   useEffect(() => {
     if (agent.state === "speaking") voice.noteSpeaking();
-    else if (agent.state === "idle") voice.noteSpeakingDone();
+    else if (agent.state === "idle" || agent.state === "finished") voice.noteSpeakingDone();
     // "paused" / "thinking" → no change needed
   }, [agent.state, voice]);
 
   const cameraOn = camera === "on";
+
+  // First-run setup: if no API keys are configured at all, open the setup
+  // modal once per session so the user can configure ULTRON's brain/voice.
+  useEffect(() => {
+    if (locked || setupOpen) return;
+    let cancelled = false;
+    fetch("/api/config", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { configured?: Record<string, boolean> } | null) => {
+        if (cancelled || !d?.configured) return;
+        if (!Object.values(d.configured).some(Boolean)) setSetupOpen(true);
+      })
+      .catch(() => {
+        /* server unreachable — skip silently */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [locked, setupOpen]);
 
   // Status line under the title: one source of truth for what ULTRON is doing
   const statusLine =
@@ -274,9 +295,11 @@ export default function UltronOrb() {
         ? "SPEAKING — SAY “STOP” TO PAUSE"
         : agent.state === "paused"
           ? "PAUSED — SAY “CONTINUE” TO RESUME"
-          : voice.state === "processing"
-            ? "PROCESSING…"
-            : voice.lastAction || "LISTENING — SAY “ULTRON” + YOUR QUESTION";
+          : agent.state === "finished"
+            ? "RESPONSE COMPLETE — LISTENING FOR YOUR NEXT QUESTION"
+            : voice.state === "processing"
+              ? "PROCESSING…"
+              : voice.lastAction || "LISTENING — SAY “ULTRON” + YOUR QUESTION";
 
   const handleOnboardingComplete = useCallback(() => {
     setOnboarding(false);
@@ -390,6 +413,15 @@ export default function UltronOrb() {
               >
                 VOICE ⚙
               </button>
+              <button
+                type="button"
+                className={`hud-btn${setupOpen ? " hud-btn--on" : ""}`}
+                aria-pressed={setupOpen}
+                onClick={() => setSetupOpen((v) => !v)}
+                title="Configure API keys — stored locally in .env.local, never sent to the browser"
+              >
+                SETUP
+              </button>
               <button type="button" className="hud-btn" onClick={handleLock} aria-label="Lock system">
                 LOCK
               </button>
@@ -420,6 +452,8 @@ export default function UltronOrb() {
               onClose={() => setSettingsOpen(false)}
             />
           )}
+
+          {setupOpen && <SetupModal onClose={() => setSetupOpen(false)} />}
 
           {chatOpen && (
             <ChatPanel

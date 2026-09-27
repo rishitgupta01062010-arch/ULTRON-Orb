@@ -15,7 +15,7 @@ import type { ChatTurn } from "@/lib/agent/useUltronAgent";
 interface ChatPanelProps {
   history: ChatTurn[];
   streamingText: string | null; // live-growing assistant reply (null when idle)
-  state: "idle" | "thinking" | "speaking" | "paused";
+  state: "idle" | "thinking" | "speaking" | "paused" | "finished";
   error: string | null;
   onSend: (text: string) => void;
   onClear: () => void;
